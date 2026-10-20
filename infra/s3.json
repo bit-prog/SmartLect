@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "smartlect",
+      "credentials": [{ "accessKey": "smartlect", "secretKey": "smartlect-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

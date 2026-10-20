@@ -1,0 +1,53 @@
+# Локальная инфраструктура SmartLect для разработки.
+# Запуск: docker compose up -d
+name: smartlect
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: smartlect
+      POSTGRES_USER: smartlect
+      POSTGRES_PASSWORD: smartlect
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartlect -d smartlect"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: smartlect
+      RABBITMQ_DEFAULT_PASS: smartlect
+      # Этап может идти дольше стандартных 30 мин (распознавание 1,5 ч аудио на CPU) — даём 6 ч на подтверждение
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit consumer_timeout 21600000"
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # веб-панель http://localhost:15672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # S3-совместимое хранилище для аудио и фото (вместо MinIO: его образы больше не публикуются).
+  s3:
+    image: chrislusf/seaweedfs:latest
+    command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - "9100:8333"  # S3 API
+    volumes:
+      - s3-data:/data
+      - ./infra/s3.json:/etc/seaweedfs/s3.json:ro
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  s3-data:
